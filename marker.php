@@ -43,8 +43,14 @@ foreach ($raw_data as $file) {
     //replace many spaces with just one (or replace tab with one space)
     $line = preg_replace('/\s+/', ' ', $line);
     $line = preg_replace('/\t+/', ' ', $line);
-    if ((preg_match("/define host{/", $line)) OR (preg_match("/define host {/", $line)) OR (preg_match("/define hostextinfo {/", $line)) OR (preg_match("/define hostextinfo{/", $line))) {
-      //starting a new host definition
+    if (   (preg_match("/define host{/", $line)) 
+        OR (preg_match("/define host {/", $line)) 
+        OR (preg_match("/define hostextinfo {/", $line)) 
+        OR (preg_match("/define hostextinfo{/", $line))
+        OR (preg_match("/define hostgroup {/", $line)) 
+        OR (preg_match("/define hostgroup{/", $line))
+        ) {
+      //starting a new host or hostgroup definition
       if ($in_definition) {
         echo '//starting a new in_definition before closing the previous one! Exiting...'."\n";
         die;
@@ -80,6 +86,10 @@ if ($nagmap_debug) {
 
 //hosts definition - we are only interested in hostname, parents and notes with position information
 foreach ($data as $host) {
+  // imagine that hostgroups are hosts
+  if ($host['hostgroup_name']) {
+    $host['host_name'] = $host['hostgroup_name'];
+  }
   if (((!empty($host["host_name"])) && (!preg_match("/^\\!/", $host['host_name']))) | ($host['register'] == 0)) {
     $hostname = 'x'.safe_name($host["host_name"]).'x';
     $hosts[$hostname]['host_name'] = $hostname;
@@ -123,7 +133,7 @@ unset($data);
 $s = nagmap_status();
 //remove hosts we are not able to render and combine those we are able to render with their statuses 
 foreach ($hosts as $h) {
-  if ((isset($h["latlng"])) AND (isset($h["host_name"])) AND (isset($s[$h["nagios_host_name"]]['status']))) {
+  if ((isset($h["latlng"])) AND (isset($h["host_name"]))) { // AND (isset($s[$h["nagios_host_name"]]['status']))) {
     $data[$h["host_name"]] = $h;
     $data[$h["host_name"]]['status'] = $s[$h["nagios_host_name"]]['status'];
     $data[$h["host_name"]]['status_human'] = $s[$h["nagios_host_name"]]['status_human'];
